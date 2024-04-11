@@ -1,0 +1,218 @@
+from itertools import product
+from turtle import shape
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models
+import argparse
+import clip
+from collections import OrderedDict
+from clip_modules.model_loader import load
+from models.common import *
+from torch.nn.modules.loss import CrossEntropyLoss
+import numpy as np
+from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+
+class DRPT(nn.Module):
+    def __init__(self, config, attributes, classes, offset, ent_attr, ent_obj):
+        super().__init__()
+        clip_model, _ = load(config.clip_model, context_length=config.context_length)
+        self.clip = clip_model
+        self.config = config
+        self.attributes = attributes
+        self.classes = classes
+        self.dtype = torch.float16
+        self.dropout = nn.Dropout(config.dropout)
+        self.ent_attr = torch.Tensor(list(ent_attr.values())).cuda()
+        self.ent_obj = torch.Tensor(list(ent_obj.values())).cuda()
+        self.avg_ent_att, self.avg_ent_obj = self.ent_attr.mean(), self.ent_obj.mean()
+        self.token_ids, self.soft_att, self.soft_obj, self.soft_prompt = self.construct_soft_prompt()
+        self.offset = offset
+        self.enable_pos_emb = True
+        self.train_status = "object"      ###status in ["object", "state", "object+state"]
+        self.text_encoder = CustomTextEncoder(self.clip, self.dtype, self.attributes, self.classes)
+        for p in self.parameters():
+            p.requires_grad=False
+        # self.soft_att_dict, self.soft_obj_dict = nn.ParameterDict({}), nn.ParameterDict({})
+        # self.decompose_attr_obj()
+        self.soft_att_obj = nn.ParameterDict({'att': nn.Parameter(self.soft_att), 'obj': nn.Parameter(self.soft_obj)})
+        self.soft_att_fix = self.soft_att_obj['att'].detach().cuda()
+        self.soft_obj_fix = self.soft_att_obj['obj'].detach().cuda()
+        self.adapter = Adapter(768, 4)
+        if self.config.update==True:
+            self.update_status(self.config.epoch_start)
+
+
+    def decompose_attr_obj(self):
+        #### Rename soft_attr and soft_obj
+        for id, tok in enumerate(self.attributes):
+            self.soft_att_dict[tok] = nn.Parameter(self.soft_att[id])
+        for id, tok in enumerate(self.classes):
+            self.soft_obj_dict[tok] = nn.Parameter(self.soft_obj[id])
+
+    def construct_soft_prompt(self):
+        token_ids = clip.tokenize("a photo of x x", context_length=self.config.context_length).cuda()
+
+        #### Construct the prompt for attributes
+        tokenized_attr = torch.cat([clip.tokenize(tok, context_length=self.config.context_length) for tok in self.attributes])
+        orig_token_embedding_attr = self.clip.token_embedding(tokenized_attr.cuda())
+        soft_att = torch.zeros(
+            (len(self.attributes), orig_token_embedding_attr.size(-1)),
+        )
+        for idx, rep in enumerate(orig_token_embedding_attr):
+            eos_idx = tokenized_attr[idx].argmax()
+            soft_att[idx, :] = torch.mean(rep[1:eos_idx, :], axis=0)
+
+        #### Construct the prompt for objects
+        tokenized_obj = torch.cat([clip.tokenize(tok, context_length=self.config.context_length) for tok in self.classes])
+        orig_token_embedding_obj = self.clip.token_embedding(tokenized_obj.cuda())
+        soft_obj = torch.zeros(
+            (len(self.classes), orig_token_embedding_obj.size(-1)),
+        )
+        for idx, rep in enumerate(orig_token_embedding_obj):
+            eos_idx = tokenized_obj[idx].argmax()
+            soft_obj[idx, :] = torch.mean(rep[1:eos_idx, :], axis=0)
+
+        #### Construct the prompt for the prefix.
+        prefix_init = "a photo of"
+        n_ctx = len(prefix_init.split())
+        prompt = clip.tokenize(prefix_init, context_length=self.config.context_length).cuda()
+        with torch.no_grad():
+            embedding = self.clip.token_embedding(prompt)
+        prefix_vectors = embedding[0, 1 : 1 + n_ctx, :]
+
+        return token_ids, soft_att, soft_obj, prefix_vectors
+
+
+    def construct_token_tensors(self, pair_idx):
+        attr_idx, obj_idx = pair_idx[:, 0], pair_idx[:, 1]
+        class_token_ids = self.token_ids.repeat(len(pair_idx), 1)
+        token_tensor = self.clip.token_embedding(
+            class_token_ids.cuda()
+        ).type(self.clip.dtype)
+
+        soft_att = self.dropout(self.soft_att_obj['att'])
+        soft_obj = self.dropout(self.soft_att_obj['obj'])
+
+        eos_idx = int(self.token_ids[0].argmax())
+        
+        # soft_att = torch.stack([self.soft_att_dict[key] for index, key in enumerate(self.soft_att_dict)])
+        # soft_obj = torch.stack([self.soft_obj_dict[key] for index, key in enumerate(self.soft_obj_dict)])
+        # soft_att = self.dropout(soft_att)
+        # soft_obj = self.dropout(soft_obj)
+        token_tensor[:, eos_idx - 2, :] = soft_att[attr_idx].type(self.clip.dtype)
+        token_tensor[:, eos_idx - 1, :] = soft_obj[obj_idx].type(self.clip.dtype)
+
+        # adding the correct learnable context
+        token_tensor[
+            :, 1 : len(self.soft_prompt) + 1, :
+        ] = self.soft_prompt.type(self.clip.dtype)
+        return token_tensor
+
+
+    def visual(self, x: torch.Tensor):
+        x = self.clip.visual.conv1(x)  # shape = [*, width, grid, grid]
+        x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
+        x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
+        x = torch.cat([self.clip.visual.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)  # shape = [*, grid ** 2 + 1, width]
+        x = x + self.clip.visual.positional_embedding.to(x.dtype)
+        x = self.clip.visual.ln_pre(x)
+
+        x = x.permute(1, 0, 2)  # NLD -> LND
+        img_feature = self.clip.visual.transformer(x)
+
+        x = img_feature.permute(1, 0, 2)  # LND -> NLD
+
+        x = self.clip.visual.ln_post(x[:, 0, :])
+        if self.clip.visual.proj is not None:
+            x = x @ self.clip.visual.proj
+        normalized_x = x / x.norm(dim=-1, keepdim=True)
+        return normalized_x
+
+    def ent_weight(self, idx):
+        att_idx, obj_idx = idx[:, 0].cpu().numpy(), idx[:, 1].cpu().numpy()
+        w_att = torch.abs(self.ent_attr - self.avg_ent_att)
+        w_obj = torch.abs(self.ent_obj - self.avg_ent_obj)
+        ent_weight = torch.zeros(len(idx))
+        ent_weight = w_att[att_idx] * w_obj[obj_idx]
+        ent_weight = ent_weight / ent_weight.max()
+        if self.config.dataset != "cgqa":
+            return 1 +  self.config.ent_w * (1 - ent_weight)
+        return 1 + self.config.ent_w * ent_weight
+
+    def update_status(self, epoch):
+        if epoch // self.config.epoch_round % 2 == 0:
+            self.train_status = "object"
+        elif epoch // self.config.epoch_round % 2 == 1:
+            self.train_status = "state"
+        # else:
+            # if self.train_status != "state+object":
+            #     self.soft_att_fix = self.soft_att_obj['att'].detach().cuda()
+            #     self.soft_obj_fix = self.soft_att_obj['obj'].detach().cuda()
+            # self.train_status = "state+object"
+
+        if self.train_status == "object":
+            self.soft_att_obj['att'].requires_grad = False
+            self.soft_att_obj['obj'].requires_grad = True
+        elif self.train_status == "state":
+            self.soft_att_obj['att'].requires_grad = True
+            self.soft_att_obj['obj'].requires_grad = False
+        else:
+            self.soft_att_obj['att'].requires_grad = True
+            self.soft_att_obj['obj'].requires_grad = True
+
+
+
+    def forward(self, batch, idx):
+        batch_img, batch_attr, batch_obj, batch_target = batch[0], batch[1], batch[2], batch[3]
+        batch_img, batch_attr, batch_obj, batch_target = batch_img.cuda(), batch_attr.cuda(), batch_obj.cuda(), batch_target.cuda()
+        b = batch_img.shape[0]
+
+        #### Image Encoder
+        batch_img = self.visual(batch_img.type(self.clip.dtype))   ## bs * 768
+        # batch_img_adapted = self.adapter(batch_img.float()).type(self.clip.dtype)
+        # batch_img = 0.2 * batch_img_adapted + 0.8 * batch_img
+
+        #### Text Encoder
+        token_tensors = self.construct_token_tensors(idx)
+        text_features = self.text_encoder(self.token_ids, token_tensors, enable_pos_emb=self.enable_pos_emb, idx=idx)
+
+        # self.analysis_distribution(text_features.detach().cpu())
+
+        ent_weight = self.ent_weight(idx).cuda().type(self.dtype)
+        #### Compute Logits and loss
+        logits = self.clip.logit_scale.exp() * batch_img @ text_features.t()  
+
+        # loss = self.loss_fn(logits, batch_target)
+        if self.config.ent_weight == True:
+            loss = F.cross_entropy(logits, batch_target, weight=ent_weight)
+        else:
+            loss = F.cross_entropy(logits, batch_target)
+
+        return logits, loss
+
+
+    def analysis_distribution(self, features):
+        # import pdb; pdb.set_trace()
+        # 使用t-SNE进行降维
+        tsne = TSNE(n_components=2, random_state=42)
+        X_tsne = tsne.fit_transform(features)
+        # # 使用K-Means进行聚类
+        kmeans = KMeans(n_clusters=83, random_state=42)
+        kmeans.fit(features)
+        # 获取聚类结果
+        labels = kmeans.labels_
+        plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=labels, cmap='viridis')
+        plt.title('t-SNE Clustering')
+        plt.savefig('demos/t-SNE.pdf')
+
+    def store_params_update_scope(self):
+        dist_att = self.soft_att_obj['att'] - self.soft_att_fix
+        dist_obj = self.soft_att_obj['obj'] - self.soft_obj_fix
+        dist_att = torch.sum(torch.square(dist_att), dim=1)
+        dist_obj = torch.sum(torch.square(dist_obj), dim=1)
+        print(torch.mean(dist_att), torch.mean(dist_obj))
