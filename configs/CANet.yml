@@ -1,0 +1,59 @@
+
+dataset:
+  dataset: ut-zap50k
+  dataset_path: /data/sjh/dataset/ut-zappos
+  word_embedding_root: /data/sjh/dataset/
+  
+  splitname: compositional-split-natural
+  train_only: true
+
+model:
+  model_type: CANet
+  image_extractor: resnet18
+
+  composition: mlp_add
+  relu: False
+  dropout: False
+  norm: False
+
+  emb_type: glove
+  emb_dim: 300
+
+  nhiddenlayers: 0
+  nlayers: 2
+  bias: 1.0e+3
+  alpha: 0.4
+
+optimizer:
+  num_workers: 4
+
+train:
+  log_id: "This is the training process of CANet"
+  device: cuda
+
+  train_only: True
+  batch_size: 4 # # ori 256
+  train_split: 'normal'
+
+  norm_family: imagenet
+
+  lr: 5.0e-05
+  lrg: 5.0e-06 
+  cosine_scale: 0.02
+  wd: 5.0e-5
+
+  save_every: 1
+  eval_val_every: 1
+  max_epochs: 500
+  
+  update_image_features: false
+  update_word_features: true
+  extract_feature_vectors: true
+
+eval:
+  test_set: test
+  test_batch_size: 248 # ori 2048
+  cpu_eval: False
+  topk: 1
+
+

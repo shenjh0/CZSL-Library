@@ -4,6 +4,9 @@ model:
   width_img: 1024
   width_txt: 768
 
+dataset:
+  splitname: compositional-split-natural
+
 train:
   dataset: ut-zappos
   dataset_path: "../../../dataset/ut-zappos"

@@ -1,10 +1,10 @@
 DATASET:
-  dataset_path: '/data/sjh/dataset/MITStates/release_dataset'
-  name: 'mitstates'
+  dataset_path: '/data/sjh/dataset/ut-zappos'
+  name: 'utzappos'
   splitname: 'compositional-split-natural'
 
 MODEL:
-  config_name: 'mitstates-cot'
+  config_name: 'utzappos-cot'
   model_type: 'CoT'
   load_checkpoint:
 
@@ -45,17 +45,17 @@ TRAIN:
   num_workers: 4
   seed: 124
 
-  batch_size: 128
-  test_batch_size: 64
+  batch_size: 4
+  test_batch_size: 2
 
   finetune_backbone: True
   use_precomputed_features: False
   comb_features: False
 
   lr_word_embedding: 2.5e-6
-  lr_encoder: 1e-5  
-  lr: 1e-4
-  wd: 5e-5
+  lr_encoder: 0.00001
+  lr: 0.0001
+  wd: 0.00005
 
   disp_interval: 283
   save_every_epoch: 1

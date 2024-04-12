@@ -1,5 +1,5 @@
 from itertools import product
-
+import os
 import numpy as np
 import torch
 from PIL import Image
@@ -193,13 +193,9 @@ class CompositionDataset(Dataset):
         img = self.transform(img)
 
         if self.phase == 'train':
-            data = [
-                img, self.attr2idx[attr], self.obj2idx[obj], self.train_pair_to_idx[(attr, obj)]
-            ]
+            data = [img, self.attr2idx[attr], self.obj2idx[obj], self.train_pair_to_idx[(attr, obj)]]
         else:
-            data = [
-                img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]
-            ]
+            data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
 
         return data
 
@@ -466,3 +462,165 @@ class COTDataset(Dataset):
                 i2 = np.random.choice(self.image_with_obj[obj])
                 _, attr1, _ = self.data[i2]
             return i2
+
+
+class CANetDataset(CompositionDataset):
+    def __init__(
+            self,
+            config,
+            root,
+            phase,
+            split='compositional-split',
+            model='resnet18',
+            update_image_features=False,
+            train_only=False,
+    ):
+        super().__init__(
+            root=root,
+            phase=phase,
+            split=split,
+            open_world=config.open_world,
+            imagenet=config.imagenet
+        )
+        self.config = config
+        self.root = root
+        self.phase = phase
+        self.split = split
+        self.update_image_features = update_image_features
+        self.feat_dim = 512 if 'resnet18' in model else 2048  # todo, unify this with models
+        self.device = config.device
+        # attrs [115], objs [245], pairs [1962], train_pairs [1262], val_pairs [600], test_pairs [800]
+        self.attrs, self.objs, self.pairs, self.train_pairs, \
+        self.val_pairs, self.test_pairs = self.parse_split()
+        self.train_data, self.val_data, self.test_data = self.get_split_info()
+        self.full_pairs = list(product(self.attrs, self.objs))
+
+        # Clean only was here
+        self.obj2idx = {obj: idx for idx, obj in enumerate(self.objs)}
+        self.attr2idx = {attr: idx for idx, attr in enumerate(self.attrs)}
+        self.all_pair2idx = {pair: idx for idx, pair in enumerate(self.pairs)}  # all pairs [1962], for val in training
+
+        if train_only and self.phase == 'train':
+            print('  Using only train pairs during training')
+            self.pair2idx = {pair: idx for idx, pair in enumerate(self.train_pairs)}  # train pairs [1262]
+        else:
+            print('  Using all pairs as classification classes during {} process'.format(self.phase))
+            self.pair2idx = {pair: idx for idx, pair in enumerate(self.pairs)}  # all pairs [1962]
+
+        if self.phase == 'train':
+            self.data = self.train_data
+        elif self.phase == 'val':
+            self.data = self.val_data
+        elif self.phase == 'test':
+            self.data = self.test_data
+        elif self.phase == 'all':
+            self.data = self.train_data + self.val_data + self.test_data
+        else:
+            raise ValueError('  Invalid training phase')
+        print('Use data from {} set'.format(self.phase))
+
+        self.all_data = self.train_data + self.val_data + self.test_data
+
+        # Keeping a list of all pairs that occur with each object
+        self.obj_affordance = {}
+        self.train_obj_affordance = {}
+        for _obj in self.objs:
+            candidates = [attr for (_, attr, obj) in self.train_data + self.test_data if obj == _obj]
+            self.obj_affordance[_obj] = list(set(candidates))
+
+            candidates = [attr for (_, attr, obj) in self.train_data if obj == _obj]
+            self.train_obj_affordance[_obj] = list(set(candidates))
+
+        self.sample_indices = list(range(len(self.data)))
+        self.sample_pairs = self.train_pairs
+
+        # Load based on what to output
+        self.transform = transform_image(self.phase)
+        self.loader = ImageLoader(os.path.join(self.root, 'images'))
+
+        if not self.update_image_features:
+            feat_file = os.path.join(root, model + '_feature_vectors.t7')
+            if not os.path.exists(feat_file):
+                print('  Feature file not found. Now get one!')
+                with torch.no_grad():
+                    self.generate_features(feat_file, model)
+            self.phase = phase
+            print(f'  Using {model} and feature file {feat_file}')
+            activation_data = torch.load(feat_file)
+            self.activations = dict(
+                zip(activation_data['files'], activation_data['features']))
+            self.feat_dim = activation_data['features'].size(1)
+  
+
+    def generate_features(self, out_file, model):
+        '''
+        Inputs
+            out_file: Path to save features
+            model: String of extraction model
+        '''
+        import tqdm
+        import glob
+        from models.CANET.image_extractor import get_image_extractor
+        def chunks(l, n):
+            """Yield successive n-sized chunks from l."""
+            for i in range(0, len(l), n):
+                yield l[i:i + n]
+        # data = self.all_data
+        data = os.path.join(self.root, 'images')
+        files_before = glob(os.path.join(data, '**', '*.jpg'), recursive=True)
+        files_all = []
+        for current in files_before:
+            parts = current.split('/')
+            if "cgqa" in self.root:
+                files_all.append(parts[-1])
+            else:
+                files_all.append(os.path.join(parts[-2], parts[-1]))
+        transform = transform_image('test') # Do not use any image augmentation, because we have a trained image backbone
+        feat_extractor = get_image_extractor(arch=model).eval()
+        if not self.config.extract_feature_vectors:
+            from torch.nn import Sequential
+            feat_extractor = Sequential(*list(feat_extractor.children())[:-1])
+        feat_extractor = feat_extractor.to(self.device)
+
+        image_feats = []
+        image_files = []
+        for chunk in tqdm(chunks(files_all, 1024), total=len(files_all) // 1024, desc=f'Extracting features {model}'):
+            files = chunk
+            imgs = list(map(self.loader, files))
+            imgs = list(map(transform, imgs))
+            feats = feat_extractor(torch.stack(imgs, 0).to(self.device))
+            image_feats.append(feats.data.cpu())
+            image_files += files
+        image_feats = torch.cat(image_feats, dim=0)
+        print('features for %d images generated' % (len(image_files)))
+
+        torch.save({'features': image_feats, 'files': image_files}, out_file)
+
+    def __getitem__(self, index):
+        '''
+        Call for getting samples
+        '''
+        index = self.sample_indices[index]
+
+        image, attr, obj = self.data[index]
+
+        # Decide what to output
+        if not self.update_image_features:
+            if self.config.dataset == 'mit-states':
+                pair, img = image.split('/')
+                pair = pair.replace('_', ' ')
+                image = pair + '/' + img
+            img = self.activations[image]
+        else:
+            img = self.loader(image)
+            img = self.transform(img)
+
+        data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
+
+        return data
+
+    def __len__(self):
+        '''
+        Call for length
+        '''
+        return len(self.sample_indices)

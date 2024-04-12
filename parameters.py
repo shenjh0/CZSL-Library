@@ -11,7 +11,9 @@ YML_PATH = {
 
 
 #model config
+# parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CANet.yml')
 parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CoT.yml')
+# parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/mit-states.yml')
 
 parser.add_argument("--lr", help="learning rate", type=float, default=5e-05)
 parser.add_argument("--dataset", help="name of the dataset", type=str, default='mit-states')
@@ -37,3 +39,4 @@ parser.add_argument("--topk", help="eval topk", type=int, default=1)
 parser.add_argument("--text_encoder_batch_size", help="batch size of the text encoder", default=16, type=int)
 parser.add_argument('--threshold', type=float, help="optional threshold")
 parser.add_argument('--threshold_trials', type=int, default=50, help="how many threshold values to try")
+parser.add_argument('--imagenet', type=bool, default=False, )
