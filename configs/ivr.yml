@@ -1,0 +1,42 @@
+
+experiment:
+  name: IVR-utzappos
+
+dataset:
+  dataset: utzappos
+  dataset_path: /data/sjh/dataset/ut-zappos
+  splitname: compositional-split-natural
+
+model_params:
+  model_type: IVR
+  nlayers: 2
+  emb_dim: 300
+  image_extractor: resnet18
+
+training:
+  batch_size: 512
+  device: cuda
+  load:
+  lr: 5.0e-05
+  lrg: 0.001
+  cosine_scale: 20
+  max_epochs: 500
+  save_every: 10000
+  test_batch_size: 32
+  test_set: test
+  topk: 1
+  wd: 5.0e-05
+  num_workers: 4
+  update_image_features: false
+  lambda_rep: 1
+  lambda_grad: 10
+
+others:
+  bias: 1000.0
+  cpu_eval: false
+  cv_dir: logs/
+  drop: 0.8333333333333334
+
+  eval_val_every: 1
+
+  seed: 0

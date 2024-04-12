@@ -1,6 +1,7 @@
 from itertools import product
 import os
 import random
+from random import choice
 import numpy as np
 import torch
 from PIL import Image
@@ -779,8 +780,118 @@ class SCENDataset(CANetDataset):
 
         return data
 
+
+class IVRDataset(CANetDataset):
+    def __init__(
+        self,
+        config,
+        root,
+        phase,
+        split = 'compositional-split',
+        model = 'resnet18',
+        update_image_features = False,
+    ):
+        self.root = root
+        self.phase = phase
+        self.split = split
+        self.update_image_features = update_image_features
+        self.feat_dim = 512 if 'resnet18' in model else 2048
+        self.open_world = False
+
+        self.attrs, self.objs, self.pairs, self.train_pairs, self.val_pairs, self.test_pairs = self.parse_split()
+        self.train_data, self.val_data, self.test_data = self.get_split_info()
+ 
+        self.obj2idx = {obj: idx for idx, obj in enumerate(self.objs)}
+        self.attr2idx = {attr : idx for idx, attr in enumerate(self.attrs)}
+
+        if self.phase == 'train':
+            self.pair2idx = {pair : idx for idx, pair in enumerate(self.train_pairs)}
+        else:
+            self.pair2idx = {pair : idx for idx, pair in enumerate(self.pairs)}
+        self.all_pair2idx = {pair: idx for idx, pair in enumerate(self.pairs)}
+        
+        if self.phase == 'train':
+            self.data = self.train_data
+        elif self.phase == 'val':
+            self.data = self.val_data
+        elif self.phase == 'test':
+            self.data = self.test_data
+        
+        self.all_data = self.train_data + self.val_data + self.test_data
+
+        print('Dataset loaded')
+        print('Train pairs: {}, Validation pairs: {}, Test Pairs: {}'.format(
+            len(self.train_pairs), len(self.val_pairs), len(self.test_pairs)))
+        print('Train images: {}, Validation images: {}, Test images: {}'.format(
+            len(self.train_data), len(self.val_data), len(self.test_data)))
+
+        self.sample_indices = list(range(len(self.data)))
+
+
+        self.transform = transform_image(self.phase)
+        self.loader = ImageLoader(os.path.join(self.root, 'images'))
+        if not self.update_image_features:
+            feat_file = os.path.join(root, model + '_feature_vectors.t7')
+            if not os.path.exists(feat_file):
+                print('  Feature file not found. Now get one!')
+                with torch.no_grad():
+                    self.generate_features(feat_file, model)
+            self.phase = phase
+            print(f'  Using {model} and feature file {feat_file}')
+            activation_data = torch.load(feat_file)
+            self.activations = dict(
+                zip(activation_data['files'], activation_data['features']))
+            self.feat_dim = activation_data['features'].size(1)
+
+    def __getitem__(self, index):
+        index = self.sample_indices[index]
+        image, attr, obj = self.data[index]
+        if self.phase == 'train':
+            positive_attr = self.same_A_diff_B(label_A=attr, label_B=obj, phase='attr')
+            same_attr_image = positive_attr[0]
+            one_obj=positive_attr[2]
+            one_attr = positive_attr[1]
+            positive_obj = self.same_A_diff_B(label_A=obj, label_B=attr, phase='obj')
+            same_obj_image = positive_obj[0]
+            two_attr=positive_obj[1]
+            two_obj= positive_obj[2]
+
+        if not self.update_image_features:
+            img = self.activations[image]
+            if self.phase == 'train':
+                same_attr_img = self.activations[same_attr_image]
+                same_obj_img = self.activations[same_obj_image]
+        else:
+            img = self.loader(image)
+            img = self.transform(img)
+            if self.phase == 'train':
+                same_attr_img = self.loader(same_attr_image)
+                same_attr_img = self.transform(same_attr_img)
+                same_obj_img = self.loader(same_obj_image)
+                same_obj_img = self.transform(same_obj_img)
+
+        data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
+
+        if self.phase == 'train':
+            data += [same_attr_img, self.obj2idx[one_obj], same_obj_img, self.attr2idx[two_attr],
+                self.attr2idx[one_attr], self.obj2idx[two_obj],
+                self.pair2idx[(attr, one_obj)], self.pair2idx[(two_attr, obj)]]
+
+        return data
+
+
+    def same_A_diff_B(self, label_A, label_B, phase='attr'):
+        data1 = []
+        for i in range(len(self.train_data)):
+            if phase=='attr':
+                if (self.train_data[i][1]== label_A) & (self.train_data[i][2] != label_B):
+                    data1.append(self.train_data[i])
+            else:
+                if (self.train_data[i][2]== label_A) & (self.train_data[i][1] != label_B):
+                    data1.append(self.train_data[i])
+            
+        data2 = choice(data1)
+        return data2
+
     def __len__(self):
-        '''
-        Call for length
-        '''
         return len(self.sample_indices)

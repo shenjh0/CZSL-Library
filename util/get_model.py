@@ -18,6 +18,7 @@ def build_model(config, dataset):
         from models import get_image_extractor
         image_extractor = None
         if config.update_image_features:
+            print('CANet Learnable image_embeddings')
             image_extractor = get_image_extractor(arch=config.image_extractor, pretrained=True)
             if not config.extract_feature_vectors:
                 import torch.nn as nn
@@ -28,11 +29,18 @@ def build_model(config, dataset):
     elif type.upper() == "SCEN":
         image_extractor = None
         if config.update_image_features:
-            print('Learnable image_embeddings')
+            print('SCEN Learnable image_embeddings')
             image_extractor = get_image_extractor(arch =config.image_extractor, pretrained=True)
         scen = SCEN(dataset, config)
         scen.is_open=False
         model = [image_extractor, scen]
+    elif type.upper() == "IVR":
+        image_extractor = None
+        if config.update_image_features:
+            print('IVR Learnable image_embeddings')
+            image_extractor = get_image_extractor(arch =config.image_extractor, pretrained=True)
+        ivr = IVR(dataset, config)
+        model = [image_extractor, ivr]
     else:
         raise NotImplementedError('This method is not support now.')
     

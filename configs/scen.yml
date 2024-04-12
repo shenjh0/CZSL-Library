@@ -37,7 +37,7 @@ training:
   lrg: 0.001
   margin: 1.0
   cosine_scale: 100
-  max_epochs: 300
+  max_epochs: 500
   norm_family: imagenet
   save_every: 10000
   test_batch_size: 64

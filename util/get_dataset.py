@@ -1,4 +1,4 @@
-from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset
+from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset, IVRDataset
 
 
 def build_dataset(config, split, **args):
@@ -48,6 +48,31 @@ def build_dataset(config, split, **args):
             subset=config.subset,
             update_image_features = config.update_image_features,
             open_world=config.open_world
+        )
+    elif config.model_type.upper() == "IVR":
+        train_dataset = IVRDataset(
+                config,
+                root=config.dataset_path,
+                phase='train',
+                split=config.splitname,
+                model =config.image_extractor,
+                update_image_features = config.update_image_features,
+            )
+        val_dataset = IVRDataset(
+            config,
+            root=config.dataset_path,
+            phase=config.test_set,
+            split=config.splitname,
+            model =config.image_extractor,
+            update_image_features = config.update_image_features
+        )
+        test_dataset = IVRDataset(
+            config,
+            root=config.dataset_path,
+            phase=config.test_set,
+            split=config.splitname,
+            model =config.image_extractor,
+            update_image_features = config.update_image_features
         )
     else:
         train_dataset = CompositionDataset(config.dataset_path, phase='train', split=split)

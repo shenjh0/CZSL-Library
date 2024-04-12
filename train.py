@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 from parameters import parser
 
-from util.getdataset import build_dataset
+from util.get_dataset import build_dataset
 from util.get_model import build_model
 from engines.engine import enginer
 from utils import *
@@ -42,16 +42,12 @@ def main():
 
     # model = DRPT(config, attributes=attributes, classes=classes, offset=offset, ent_attr=ent_attr, ent_obj=ent_obj).cuda()
     model = build_model(config, train_dataset)
-    if config.model_type == 'CANet' or config.model_type == 'SCEN':
+    if config.model_type == 'CANet' or config.model_type == 'SCEN' or config.model_type == 'IVR':
         model = [module.cuda() if module is not None else module for module in model]
     else:
         model = model.cuda()
 
     enginer(model, config, train_dataset, val_dataset, test_dataset, logger)
-
-    with open(os.path.join(config.save_path, "config.pkl"), "wb") as fp:
-        pickle.dump(config, fp)
-    print("done!")
 
 
 if __name__ == "__main__":
