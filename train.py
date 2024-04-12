@@ -42,7 +42,7 @@ def main():
 
     # model = DRPT(config, attributes=attributes, classes=classes, offset=offset, ent_attr=ent_attr, ent_obj=ent_obj).cuda()
     model = build_model(config, train_dataset)
-    if config.model_type == 'CANet':
+    if config.model_type == 'CANet' or config.model_type == 'SCEN':
         model = [module.cuda() if module is not None else module for module in model]
     else:
         model = model.cuda()

@@ -11,8 +11,9 @@ YML_PATH = {
 
 
 #model config
+parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/scen.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CANet.yml')
-parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CoT.yml')
+# parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CoT.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/mit-states.yml')
 
 parser.add_argument("--lr", help="learning rate", type=float, default=5e-05)

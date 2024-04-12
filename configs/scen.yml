@@ -1,0 +1,87 @@
+
+dataset:
+  data_dir: ut-zap50k
+  dataset: utzappos
+  splitname: compositional-split-natural
+  dataset_path: /data/sjh/dataset/ut-zappos
+  word_embedding_root: /data/sjh/dataset/  # also modify the emb_type
+
+model_params:
+  model_type: SCEN
+  model: compcos
+  dropout: true
+  norm: true
+  nlayers: 2
+  relu: false
+  fc_emb: 768,1024
+  emb_dim: 300
+  emb_type: glove
+  image_extractor: resnet18
+  train_only: true
+  static_inp: false
+  embed_rank: 64
+  clf_init: false
+  composition: mlp_add
+
+  gcn_type: gcn
+  gr_emb: d4096,d
+  graph: false
+  graph_init: graph
+  hard_masking: false
+
+training:
+  seed: 6344
+  batch_size: 128
+  load:
+  lr: 5.0e-05
+  lrg: 0.001
+  margin: 1.0
+  cosine_scale: 100
+  max_epochs: 300
+  norm_family: imagenet
+  save_every: 10000
+  test_batch_size: 64
+  test_set: test
+  topk: 1
+  wd: 5.0e-05
+  num_workers: 4
+  update_image_features: false
+  freeze_features: false
+  epoch_max_margin: 100
+  img_size: 512
+  lambda_CE: 1.0
+  lambda_aux: 1.0
+  lambda_con: 51.0
+  lambda_1: 0.2
+
+  bias: 1000.0
+  clean_only: false
+  device: cuda
+
+eval:
+  cpu_eval: false
+  cv_dir: logs/
+
+  eval_type: dist
+  eval_val_every: 1
+
+
+others:
+  lambda_ant: 0.0
+  lambda_axiom: 0
+  lambda_cls_attr: 0
+  lambda_cls_obj: 0
+  lambda_comm: 0.0
+  lambda_inv: 0.0
+  lambda_sym: 0
+  lambda_trip: 0
+  logpath: null
+  name: compcos/utzappos
+  nmods: 24
+  num_negs: 1
+  open_world: false
+  pair_dropout: 0.0
+  subset: false
+  threshold: null
+  threshold_trials: 50
+  update_feasibility_every: 1

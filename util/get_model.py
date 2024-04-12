@@ -25,6 +25,14 @@ def build_model(config, dataset):
             image_extractor = image_extractor.to(config.device)
         canet = CANet(dataset, config).to(config.device)
         model = [image_extractor, canet]
+    elif type.upper() == "SCEN":
+        image_extractor = None
+        if config.update_image_features:
+            print('Learnable image_embeddings')
+            image_extractor = get_image_extractor(arch =config.image_extractor, pretrained=True)
+        scen = SCEN(dataset, config)
+        scen.is_open=False
+        model = [image_extractor, scen]
     else:
         raise NotImplementedError('This method is not support now.')
     

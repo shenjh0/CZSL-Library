@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-DATA_FOLDER = '/home/D/wangqs/word embeddings/'
+DATA_FOLDER = '/dir/to/the/word_embedding'
 
 def load_word_embeddings(vocab, cfg):
     if cfg.emb_type == 'glove':
@@ -9,7 +9,7 @@ def load_word_embeddings(vocab, cfg):
     elif cfg.emb_type == 'fasttext':
         embeds = load_fasttext_embeddings(vocab)
     elif cfg.emb_type == 'word2vec':
-        embeds = load_word2vec_embeddings(vocab)
+        embeds = load_word2vec_embeddings(vocab, cfg.word_embedding_root)
     elif cfg.emb_type == 'ft+w2v':
         embeds1 = load_fasttext_embeddings(vocab)
         embeds2 = load_word2vec_embeddings(vocab)
@@ -87,12 +87,12 @@ def load_fasttext_embeddings(vocab):
     print('  Fasttext Embeddings loaded, total embeddings: {}'.format(embeds.size()))
     return embeds
 
-def load_word2vec_embeddings(vocab):
+def load_word2vec_embeddings(vocab, root):
     # vocab = [v.lower() for v in vocab]
 
     from gensim import models
     model = models.KeyedVectors.load_word2vec_format(
-        DATA_FOLDER+'/word2vec/GoogleNews-vectors-negative300.bin', binary=True)
+        root+'/word2vec/GoogleNews-vectors-negative300.bin', binary=True)
 
     custom_map = {
         'Faux.Fur': 'fake_fur',

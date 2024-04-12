@@ -22,7 +22,9 @@ class CrossEntropyLoss(object):
         return cross_entropy_loss(input, target, self.size_average)
 
 class COT(nn.Module):
-    """Object-Attribute Compositional Learning from Image Pair.
+    """
+        Object-Attribute Compositional Learning from Image Pair.
+        arxiv paper: https://arxiv.org/pdf/2308.04016v1.pdf
     """
     def __init__(self, dset, cfg):
         super(COT, self).__init__()

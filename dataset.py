@@ -1,5 +1,6 @@
 from itertools import product
 import os
+import random
 import numpy as np
 import torch
 from PIL import Image
@@ -474,6 +475,7 @@ class CANetDataset(CompositionDataset):
             model='resnet18',
             update_image_features=False,
             train_only=False,
+            **var
     ):
         super().__init__(
             root=root,
@@ -616,6 +618,164 @@ class CANetDataset(CompositionDataset):
             img = self.transform(img)
 
         data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
+
+        return data
+
+    def __len__(self):
+        '''
+        Call for length
+        '''
+        return len(self.sample_indices)
+
+class SCENDataset(CANetDataset):
+    def reset_dropout(self):
+        '''
+        Helper function to sample new subset of data containing a subset of pairs of objs and attrs
+        '''
+        self.pair_dropout = 0.0
+        self.sample_indices = list(range(len(self.data)))
+        self.sample_pairs = self.train_pairs
+
+        # Using sampling from random instead of 2 step numpy
+        n_pairs = int((1 - self.pair_dropout) * len(self.train_pairs))
+
+        self.sample_pairs = random.sample(self.train_pairs, n_pairs)
+        print('Sampled new subset')
+        print('Using {} pairs out of {} pairs right now'.format(
+            n_pairs, len(self.train_pairs)))
+
+        self.sample_indices = [ i for i in range(len(self.data))
+            if (self.data[i][1], self.data[i][2]) in self.sample_pairs
+        ]
+        print('Using {} images out of {} images right now'.format(
+            len(self.sample_indices), len(self.data)))
+
+    def sample_negative(self, attr, obj):
+        '''
+        Inputs
+            attr: String of valid attribute
+            obj: String of valid object
+        Returns
+            Tuple of a different attribute, object indexes
+        '''
+        new_attr, new_obj = self.sample_pairs[np.random.choice(
+            len(self.sample_pairs))]
+
+        while new_attr == attr and new_obj == obj:
+            new_attr, new_obj = self.sample_pairs[np.random.choice(
+            len(self.sample_pairs))]
+
+        return (self.attr2idx[new_attr], self.obj2idx[new_obj])
+
+    def sample_affordance(self, attr, obj):
+        '''
+        Inputs
+            attr: String of valid attribute
+            obj: String of valid object
+        Return
+            Idx of a different attribute for the same object
+        '''
+        new_attr = np.random.choice(self.obj_affordance[obj])
+
+        while new_attr == attr:
+            new_attr = np.random.choice(self.obj_affordance[obj])
+
+        return self.attr2idx[new_attr]
+
+    def sample_train_affordance(self, attr, obj):
+        '''
+        Inputs
+            attr: String of valid attribute
+            obj: String of valid object
+        Return
+            Idx of a different attribute for the same object from the training pairs
+        '''
+        new_attr = np.random.choice(self.train_obj_affordance[obj])
+
+        while new_attr == attr:
+            new_attr = np.random.choice(self.train_obj_affordance[obj])
+
+        return self.attr2idx[new_attr]
+
+    def __getitem__(self, index):
+        '''
+        Call for getting samples
+        '''
+        index = self.sample_indices[index]
+
+        image, attr, obj = self.data[index]
+
+        # Decide what to output
+        if not self.update_image_features:
+            img = self.activations[image]
+        else:
+            img = self.loader(image)
+            img = self.transform(img)
+
+
+        data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
+        # data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
+
+        if self.phase == 'train':
+
+            img_pos_obj = [_img for (_img, _, _obj) in self.train_data if _obj == obj]
+            img_pos_att = [_img for (_img, _att, _) in self.train_data if _att == attr]
+
+            for i in range(len(img_pos_obj)):
+                img_pos_obj[i] = self.activations[img_pos_obj[i]]
+            if len(img_pos_obj) > 10:
+                img_pos_obj_feats = random.sample(img_pos_obj, 10)
+            else:
+                if len(img_pos_obj) != 0:
+                    img_pos_obj_feats = []
+                    while len(img_pos_obj_feats) < 10:
+                        for i in range(len(img_pos_obj)):
+                            img_pos_obj_feats.append(img_pos_obj[i])
+                            if len(img_pos_obj_feats) == 10:
+                                break
+                    # img_pos_obj_feats = img_pos_obj.repeat(math.ceil(10 / len(img_pos_obj)), 1)[:10]
+                else:
+                    img_pos_obj_feats = torch.Tensor(10, len(img_pos_obj[0]))
+
+
+            for i in range(len(img_pos_att)):
+                img_pos_att[i] = self.activations[img_pos_att[i]]
+            if len(img_pos_att) > 10:
+                img_pos_att_feats = random.sample(img_pos_att, 10)
+            else:
+                if len(img_pos_att) != 0:
+                    img_pos_att_feats = []
+                    while len(img_pos_att_feats) < 10:
+                        for i in range(len(img_pos_att)):
+                            img_pos_att_feats.append(img_pos_att[i])
+                            if len(img_pos_att_feats) == 10:
+                                break
+                    # img_pos_obj_feats = img_pos_obj.repeat(math.ceil(10 / len(img_pos_obj)), 1)[:10]
+                else:
+                    img_pos_att_feats = torch.Tensor(10, len(img_pos_att[0]))
+
+            img_pos_obj_feats = torch.tensor([item.cpu().detach().numpy() for item in img_pos_obj_feats])
+            img_pos_att_feats = torch.tensor([item.cpu().detach().numpy() for item in img_pos_att_feats])
+
+            all_neg_attrs = []
+            all_neg_objs = []
+
+            for curr in range(1):
+                neg_attr, neg_obj = self.sample_negative(attr, obj) # negative for triplet lose
+                all_neg_attrs.append(neg_attr)
+                all_neg_objs.append(neg_obj)
+
+            neg_attr, neg_obj = torch.LongTensor(all_neg_attrs), torch.LongTensor(all_neg_objs)
+
+            #note here
+            if len(self.train_obj_affordance[obj])>1:
+                  inv_attr = self.sample_train_affordance(attr, obj) # attribute for inverse regularizer
+            else:
+                  inv_attr = (all_neg_attrs[0])
+
+            comm_attr = self.sample_affordance(inv_attr, obj) # attribute for commutative regularizer
+
+            data += [neg_attr, neg_obj, inv_attr, comm_attr, img_pos_obj_feats, img_pos_att_feats]
 
         return data
 

@@ -1,5 +1,4 @@
 import os
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -80,6 +79,9 @@ class AttrAdapter(nn.Module):
         return attr_emb
 
 class CANet(nn.Module):
+    """
+        arxiv paper: https://arxiv.org/pdf/2305.17940v2.pdf
+    """
     def __init__(self, dset, args):
         super(CANet, self).__init__()
         self.dset = dset

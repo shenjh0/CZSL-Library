@@ -106,7 +106,7 @@ def test(cfg, epoch, image_extractor, model, testloader, evaluator, logger, *bes
         save_checkpoint('best_auc')
     return best_attr ,best_obj ,best_seen ,best_unseen ,best_auc ,best_hm ,best_epoch
 
-def train_canet(models, train_dataset, val_dataset, test_dataset, config, logger):
+def train_scen(models, train_dataset, val_dataset, test_dataset, config, logger):
     image_extractor, model = models
     trainloader = DataLoader(
         train_dataset,
@@ -139,4 +139,4 @@ def train_canet(models, train_dataset, val_dataset, test_dataset, config, logger
                 config, epoch, image_extractor, model, testloader, evaluator, logger, 
                 best_attr ,best_obj ,best_seen ,best_unseen ,best_auc ,best_hm ,best_epoch)    
         
-    logger.info('======>The train and test pipeline of CANet is done.')
+    logger.info('======>The train and test pipeline of SCEN is done.')
