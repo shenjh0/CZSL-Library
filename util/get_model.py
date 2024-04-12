@@ -15,7 +15,6 @@ def build_model(config, dataset):
         model = COT(dataset, config)
     elif type.upper() == "CANET":
         config.main_root = os.path.dirname(os.path.dirname(__file__))
-        from models import get_image_extractor
         image_extractor = None
         if config.update_image_features:
             print('CANet Learnable image_embeddings')
@@ -41,6 +40,14 @@ def build_model(config, dataset):
             image_extractor = get_image_extractor(arch =config.image_extractor, pretrained=True)
         ivr = IVR(dataset, config)
         model = [image_extractor, ivr]
+    elif type.upper() == "PROLT":
+        image_extractor = image_decoupler = None
+        if config.update_image_features:
+            image_extractor = get_image_extractor(arch=config.image_extractor, pretrained=True)
+            image_decoupler = get_image_extractor(arch=config.image_extractor, pretrained=True)
+        prolt = CZSL(dataset, config)
+        prolt.is_open = config.is_open
+        model = [image_extractor, prolt, image_decoupler]
     else:
         raise NotImplementedError('This method is not support now.')
     

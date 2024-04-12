@@ -14,6 +14,7 @@ from engines.cot_engine import train_cot
 from engines.canet_engine import train_canet
 from engines.scen_engine import train_scen
 from engines.ivr_engine import train_ivr
+from engines.prolt_engine import train_prolt
 
 
 def enginer(model, config, train_dataset, val_dataset, test_dataset, logger):    
@@ -25,7 +26,8 @@ def enginer(model, config, train_dataset, val_dataset, test_dataset, logger):
         train_scen(model, train_dataset, val_dataset, test_dataset, config, logger)
     if config.model_type.upper() == "IVR":
         train_ivr(model, train_dataset, val_dataset, test_dataset, config, logger)
-
+    if config.model_type.upper() == "PROLT":
+        train_prolt(model, train_dataset, val_dataset, test_dataset, config, logger)
     else:
         os.makedirs(config.save_path, exist_ok=True)
         optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)

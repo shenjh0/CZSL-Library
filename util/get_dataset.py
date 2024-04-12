@@ -1,4 +1,4 @@
-from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset, IVRDataset
+from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset, IVRDataset, PROLTDataset
 
 
 def build_dataset(config, split, **args):
@@ -73,6 +73,22 @@ def build_dataset(config, split, **args):
             split=config.splitname,
             model =config.image_extractor,
             update_image_features = config.update_image_features
+        )
+    elif config.model_type.upper() == "PROLT":
+        train_dataset = PROLTDataset(
+                config,
+                phase='train',
+                split=config.splitname,
+            )
+        val_dataset = PROLTDataset(
+            config,
+            phase=config.test_set,
+            split=config.splitname
+        )
+        test_dataset = PROLTDataset(
+            config,
+            phase=config.test_set,
+            split=config.splitname,
         )
     else:
         train_dataset = CompositionDataset(config.dataset_path, phase='train', split=split)

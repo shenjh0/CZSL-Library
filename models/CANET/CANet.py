@@ -2,7 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .word_embedding import load_word_embeddings
+from ..word_embedding import load_word_embeddings
 from .common import MLP
 
 class HyperNet(nn.Module):

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.CANET.word_embedding import load_word_embeddings
+from models.word_embedding import load_word_embeddings
 from models.CANET.common import MLP
 import random
 from itertools import product
