@@ -6,3 +6,4 @@ from .CANET.image_extractor import get_image_extractor
 from .scen import SCEN
 from .invariant_learning import IVR
 from .PROLT.Model import CZSL
+from .CompCos.compcos import CompCos

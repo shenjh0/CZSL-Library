@@ -1,15 +1,8 @@
 import argparse
 import os
-import pickle
+
 import pprint
 from datetime import datetime
-
-import numpy as np
-import torch
-import tqdm
-from torch.nn.modules.loss import CrossEntropyLoss
-from torch.utils.data.dataloader import DataLoader
-import torch.nn.functional as F
 
 from parameters import parser
 
@@ -42,7 +35,7 @@ def main():
 
     # model = DRPT(config, attributes=attributes, classes=classes, offset=offset, ent_attr=ent_attr, ent_obj=ent_obj).cuda()
     model = build_model(config, train_dataset)
-    if config.model_type in ['CANet', 'SCEN', 'IVR', 'PROLT']:
+    if isinstance(model, list):
         model = [module.cuda() if module is not None else module for module in model]
     else:
         model = model.cuda()

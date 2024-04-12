@@ -1,4 +1,10 @@
 
+## ATTENTION
+
+important yml params: \
+dataset_path: root dir of the dataset \
+word_embedding_root: the root dir of the word embedding, for example: the glove path is: word_embedding_root+'/glove/glove.6B.300d.txt'
+
 
 ### CoT
 Need download the [Glove](https://drive.google.com/drive/folders/1BE2X70eNMIMkGYwhe01HA4c5jixUQdWd?usp=sharing) to the parent directory of the dataset root. 

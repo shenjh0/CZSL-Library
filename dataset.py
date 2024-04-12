@@ -557,7 +557,7 @@ class CANetDataset(CompositionDataset):
                 files_all.append(parts[-1])
             else:
                 files_all.append(os.path.join(parts[-2], parts[-1]))
-        transform = transform_image('test') # Do not use any image augmentation, because we have a trained image backbone
+        transform = transform_image('test') 
         feat_extractor = get_image_extractor(arch=model).eval()
         if not self.config.extract_feature_vectors:
             from torch.nn import Sequential
@@ -1210,3 +1210,121 @@ class PROLTDataset(CompositionDataset):
         Call for length
         '''
         return len(self.sample_indices)
+
+
+class CompCosDataset(CANetDataset):
+    def get_dict_data(self, data, pairs):
+        data_dict = {}
+        for current in pairs:
+            data_dict[current] = []
+
+        for current in data:
+            image, attr, obj = current
+            data_dict[(attr, obj)].append(image)
+
+        return data_dict
+
+    def reset_dropout(self):
+        ''' 
+        Helper function to sample new subset of data containing a subset of pairs of objs and attrs
+        '''
+        self.sample_indices = list(range(len(self.data)))
+        self.sample_pairs = self.train_pairs
+
+        # Using sampling from random instead of 2 step numpy
+        n_pairs = int((1 - self.pair_dropout) * len(self.train_pairs))
+
+        self.sample_pairs = random.sample(self.train_pairs, n_pairs)
+        print('Sampled new subset')
+        print('Using {} pairs out of {} pairs right now'.format(
+            n_pairs, len(self.train_pairs)))
+
+        self.sample_indices = [ i for i in range(len(self.data))
+            if (self.data[i][1], self.data[i][2]) in self.sample_pairs
+        ]
+        print('Using {} images out of {} images right now'.format(
+            len(self.sample_indices), len(self.data)))
+
+    def sample_negative(self, attr, obj):
+        '''
+        Inputs
+            attr: String of valid attribute
+            obj: String of valid object
+        Returns
+            Tuple of a different attribute, object indexes
+        '''
+        new_attr, new_obj = self.sample_pairs[np.random.choice(
+            len(self.sample_pairs))]
+
+        while new_attr == attr and new_obj == obj:
+            new_attr, new_obj = self.sample_pairs[np.random.choice(
+            len(self.sample_pairs))]
+        
+        return (self.attr2idx[new_attr], self.obj2idx[new_obj])
+
+    def sample_affordance(self, attr, obj):
+        '''
+        Inputs
+            attr: String of valid attribute
+            obj: String of valid object
+        Return
+            Idx of a different attribute for the same object
+        '''
+        new_attr = np.random.choice(self.obj_affordance[obj])
+        
+        while new_attr == attr:
+            new_attr = np.random.choice(self.obj_affordance[obj])
+        return self.attr2idx[new_attr]
+
+    def sample_train_affordance(self, attr, obj):
+        '''
+        Inputs
+            attr: String of valid attribute
+            obj: String of valid object
+        Return
+            Idx of a different attribute for the same object from the training pairs
+        '''
+        new_attr = np.random.choice(self.train_obj_affordance[obj])
+        
+        while new_attr == attr:
+            new_attr = np.random.choice(self.train_obj_affordance[obj])
+        
+        return self.attr2idx[new_attr]
+
+    def __getitem__(self, index):
+
+        index = self.sample_indices[index]
+
+        image, attr, obj = self.data[index]
+
+        # Decide what to output
+        if not self.update_image_features:
+            img = self.activations[image]
+        else:
+            img = self.loader(image)
+            img = self.transform(img)
+
+        data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
+        
+        if self.phase == 'train':
+            all_neg_attrs = []
+            all_neg_objs = []
+
+            for curr in range(1):
+                neg_attr, neg_obj = self.sample_negative(attr, obj) # negative for triplet lose
+                all_neg_attrs.append(neg_attr)
+                all_neg_objs.append(neg_obj)
+
+            neg_attr, neg_obj = torch.LongTensor(all_neg_attrs), torch.LongTensor(all_neg_objs)
+            
+            #note here
+            if len(self.train_obj_affordance[obj])>1:
+                  inv_attr = self.sample_train_affordance(attr, obj) # attribute for inverse regularizer
+            else:
+                  inv_attr = (all_neg_attrs[0]) 
+
+            comm_attr = self.sample_affordance(inv_attr, obj) # attribute for commutative regularizer
+            
+            data += [neg_attr, neg_obj, inv_attr, comm_attr]
+
+        return data

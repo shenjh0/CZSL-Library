@@ -121,11 +121,6 @@ def train_cot(model, train_dataset, val_dataset, test_dataset, cfg, logger):
                     f'Acc_Attr: {acc_attr_meter.avg:.2f}, '
                     f'Acc_Pair: {acc_pair_meter.avg:.2f}, ')
 
-                # TODO: add logger
-                # for k in out:
-                #     if k in dict_meters:
-                #         logger.add_scalar('train/%s' % k, dict_meters[k].avg, it)
-                # logger.add_scalar('train/acc_pair', acc_pair_meter.avg, it)
 
                 acc_pair_meter.reset()
                 if 'acc_attr' in out:

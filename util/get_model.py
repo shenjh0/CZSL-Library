@@ -48,7 +48,13 @@ def build_model(config, dataset):
         prolt = CZSL(dataset, config)
         prolt.is_open = config.is_open
         model = [image_extractor, prolt, image_decoupler]
+    elif type.upper() == "COMPCOS":
+        image_extractor = None
+        if config.update_image_features:
+            print('SCEN Learnable image_embeddings')
+            image_extractor = get_image_extractor(arch =config.image_extractor, pretrained=True)
+        compcos = CompCos(dataset, config)
+        model = [image_extractor, compcos]
     else:
         raise NotImplementedError('This method is not support now.')
-    
     return model

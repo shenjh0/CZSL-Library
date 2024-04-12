@@ -1,4 +1,4 @@
-from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset, IVRDataset, PROLTDataset
+from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset, IVRDataset, PROLTDataset, CompCosDataset
 
 
 def build_dataset(config, split, **args):
@@ -90,6 +90,17 @@ def build_dataset(config, split, **args):
             phase=config.test_set,
             split=config.splitname,
         )
+    elif config.model_type.upper() == "COMPCOS":
+        train_dataset = CompCosDataset(
+                config, config.dataset_path, 'train', split=config.splitname,
+                model =config.image_extractor, update_image_features = config.update_image_features,
+                train_only= config.train_only)
+        val_dataset = CompCosDataset(
+                config, config.dataset_path, config.test_set, split=config.splitname, 
+                model =config.image_extractor, update_image_features = config.update_image_features)
+        test_dataset = CompCosDataset(
+                config, config.dataset_path, config.test_set, split=config.splitname, 
+                model =config.image_extractor, update_image_features = config.update_image_features)
     else:
         train_dataset = CompositionDataset(config.dataset_path, phase='train', split=split)
         val_dataset = CompositionDataset(config.dataset_path, phase='val', split=split)
