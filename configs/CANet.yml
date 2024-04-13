@@ -1,15 +1,14 @@
 
 dataset:
   dataset: ut-zap50k
-  dataset_path: /data/sjh/dataset/ut-zappos
-  word_embedding_root: /data/sjh/dataset/
-  
+  dataset_path: /data/sjh/dataset/ut-zappos  
   splitname: compositional-split-natural
   train_only: true
 
 model:
   model_type: CANet
   image_extractor: resnet18
+  word_embedding_root: /data/sjh/dataset/
 
   composition: mlp_add
   relu: False
@@ -32,7 +31,7 @@ train:
   device: cuda
 
   train_only: True
-  batch_size: 4 # # ori 256
+  batch_size: 128 # # ori 256
   train_split: 'normal'
 
   norm_family: imagenet
@@ -52,7 +51,7 @@ train:
 
 eval:
   test_set: test
-  test_batch_size: 248 # ori 2048
+  test_batch_size: 64 # ori 2048
   cpu_eval: False
   topk: 1
 

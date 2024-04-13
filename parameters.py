@@ -11,16 +11,19 @@ YML_PATH = {
 
 
 #model config
-parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CompCos.yml')
-# parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/PROLT.yml')
+# parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CompCos.yml')
+parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/PROLT.yml') ## TODO: fix it
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/ivr.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/scen.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CANet.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CoT.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/mit-states.yml')
 
-parser.add_argument("--lr", help="learning rate", type=float, default=5e-05)
 parser.add_argument("--dataset", help="name of the dataset", type=str, default='mit-states')
+parser.add_argument("--dataset_path", help="name of the dataset", type=str, default='data/mit-states')
+parser.add_argument("--word_embedding_root", help="name of the dataset", type=str, default='data')
+
+parser.add_argument("--lr", help="learning rate", type=float, default=5e-05)
 parser.add_argument("--weight_decay", help="weight decay", type=float, default=1e-05)
 parser.add_argument("--clip_model", help="clip model type", type=str, default="ViT-L/14")
 parser.add_argument("--epochs", help="number of epochs", default=20, type=int)

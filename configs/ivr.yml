@@ -14,7 +14,7 @@ model_params:
   image_extractor: resnet18
 
 training:
-  batch_size: 512
+  batch_size: 128
   device: cuda
   load:
   lr: 5.0e-05
@@ -22,7 +22,7 @@ training:
   cosine_scale: 20
   max_epochs: 500
   save_every: 10000
-  test_batch_size: 32
+  test_batch_size: 64
   test_set: test
   topk: 1
   wd: 5.0e-05

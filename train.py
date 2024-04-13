@@ -27,7 +27,8 @@ def main():
 
     set_seed(config.seed)
 
-    train_dataset, val_dataset, test_dataset = build_dataset(config, 'compositional-split-manual')
+    # train_dataset, val_dataset, test_dataset = build_dataset(config, 'compositional-split-manual')
+    train_dataset, val_dataset, test_dataset = build_dataset(config, config.splitname)
 
     # TODO: pdrpt needs these
     if False:
