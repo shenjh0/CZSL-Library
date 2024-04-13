@@ -6,7 +6,7 @@ dataset:
   dataset_path: /data/sjh/dataset/ut-zappos
   splitname: compositional-split-natural
   open_world: false
-  data_dir: ut-zap50k
+
 model_params:
   model_type: CompCos
   

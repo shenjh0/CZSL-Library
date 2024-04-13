@@ -18,6 +18,14 @@ from torchvision.transforms.transforms import RandomResizedCrop
 BICUBIC = InterpolationMode.BICUBIC
 n_px = 224
 
+def check_mitstates_img(datatype, image):
+    if datatype in ['mit-states', 'mitstates']:
+        pair, img = image.split('/')
+        pair = pair.replace('_', ' ')
+        image = pair + '/' + img
+    return image
+
+
 
 def transform_image(split="train", imagenet=False):
     if imagenet:
@@ -367,6 +375,7 @@ class COTDataset(Dataset):
 
     def __getitem__(self, index):
         image, attr, obj = self.data[index]
+        image = check_mitstates_img(self.cfg.dataset, image)
         if self.cfg.use_precomputed_features:
             img = self.activations[image]
         else:
@@ -389,6 +398,7 @@ class COTDataset(Dataset):
             i3 = self.sample_same_object2(attr, obj)
             img1, attr1_o, obj1 = self.data[i3]
 
+            img1 = check_mitstates_img(self.cfg.dataset, img1)
             if self.cfg.use_precomputed_features:
                 img1 = self.activations[img1]
             else:
@@ -544,8 +554,8 @@ class CANetDataset(CompositionDataset):
             out_file: Path to save features
             model: String of extraction model
         '''
-        import tqdm
-        import glob
+        from tqdm import tqdm
+        from glob import glob
         from models.CANET.image_extractor import get_image_extractor
         # data = self.all_data
         data = os.path.join(self.root, 'images')
@@ -585,13 +595,9 @@ class CANetDataset(CompositionDataset):
         index = self.sample_indices[index]
 
         image, attr, obj = self.data[index]
-
         # Decide what to output
         if not self.update_image_features:
-            if self.config.dataset == 'mit-states':
-                pair, img = image.split('/')
-                pair = pair.replace('_', ' ')
-                image = pair + '/' + img
+            image = check_mitstates_img(self.config.dataset, image)
             img = self.activations[image]
         else:
             img = self.loader(image)
@@ -686,6 +692,7 @@ class SCENDataset(CANetDataset):
         image, attr, obj = self.data[index]
 
         # Decide what to output
+        image = check_mitstates_img(self.config.dataset, image)
         if not self.update_image_features:
             img = self.activations[image]
         else:
@@ -702,7 +709,7 @@ class SCENDataset(CANetDataset):
             img_pos_att = [_img for (_img, _att, _) in self.train_data if _att == attr]
 
             for i in range(len(img_pos_obj)):
-                img_pos_obj[i] = self.activations[img_pos_obj[i]]
+                img_pos_obj[i] = self.activations[check_mitstates_img(self.config.dataset, img_pos_obj[i])]
             if len(img_pos_obj) > 10:
                 img_pos_obj_feats = random.sample(img_pos_obj, 10)
             else:
@@ -719,7 +726,7 @@ class SCENDataset(CANetDataset):
 
 
             for i in range(len(img_pos_att)):
-                img_pos_att[i] = self.activations[img_pos_att[i]]
+                img_pos_att[i] = self.activations[check_mitstates_img(self.config.dataset, img_pos_att[i])]
             if len(img_pos_att) > 10:
                 img_pos_att_feats = random.sample(img_pos_att, 10)
             else:
@@ -769,6 +776,7 @@ class IVRDataset(CANetDataset):
         model = 'resnet18',
         update_image_features = False,
     ):
+        self.config = config
         self.root = root
         self.phase = phase
         self.split = split
@@ -834,6 +842,9 @@ class IVRDataset(CANetDataset):
             two_attr=positive_obj[1]
             two_obj= positive_obj[2]
 
+        image = check_mitstates_img(self.config.dataset, image)
+        same_attr_image = check_mitstates_img(self.config.dataset, same_attr_image)
+        same_obj_image = check_mitstates_img(self.config.dataset, same_obj_image)
         if not self.update_image_features:
             img = self.activations[image]
             if self.phase == 'train':
@@ -1299,6 +1310,7 @@ class CompCosDataset(CANetDataset):
 
         # Decide what to output
         if not self.update_image_features:
+            image = check_mitstates_img(self.config.dataset, image)
             img = self.activations[image]
         else:
             img = self.loader(image)

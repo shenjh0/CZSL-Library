@@ -1,9 +1,8 @@
 
 dataset:
-  data_dir: ut-zap50k
   dataset: utzappos
-  splitname: compositional-split-natural
   dataset_path: /data/sjh/dataset/ut-zappos
+  splitname: compositional-split-natural
   word_embedding_root: /data/sjh/dataset/  # also modify the emb_type
 
 model_params:

@@ -11,8 +11,9 @@ YML_PATH = {
 
 
 #model config
+parser.add_argument("--cfg", help="cofig file path", required=True, help='select the config file')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CompCos.yml')
-parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/PROLT.yml') ## TODO: fix it
+# parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/PROLT.yml') ## TODO: fix it
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/ivr.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/scen.yml')
 # parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/CANet.yml')

@@ -1,7 +1,7 @@
 DATASET:
-  dataset: ut-zappos
-  dataset_path: /data/sjh/dataset/ut-zappos
-  name: 'utzappos'
+  dataset: mit-states
+  dataset_path: /data/sjh/dataset/MITStates/release_dataset/
+
   splitname: 'compositional-split-natural'
 
 MODEL:
