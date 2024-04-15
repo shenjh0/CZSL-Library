@@ -6,11 +6,12 @@ from datetime import datetime
 
 from parameters import parser
 
+from util.get_log import init_log
 from util.get_dataset import build_dataset
 from util.get_model import build_model
+
 from engines.engine import enginer
 from utils import *
-from util.get_log import init_log
 
 def main():
     config = parser.parse_args()

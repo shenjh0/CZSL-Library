@@ -33,6 +33,7 @@ train:
   train_only: True
   batch_size: 128 # # ori 256
   train_split: 'normal'
+  open_world: false
 
   norm_family: imagenet
 

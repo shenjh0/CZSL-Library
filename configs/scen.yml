@@ -5,6 +5,8 @@ dataset:
   splitname: compositional-split-natural
   word_embedding_root: /data/sjh/dataset/  # also modify the emb_type
 
+  num_negs: 1
+
 model_params:
   model_type: SCEN
   model: compcos

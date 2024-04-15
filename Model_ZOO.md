@@ -44,7 +44,7 @@ See more by following the official repo [CoT](https://github.com/HanjaeKim98/CoT
 ``` sh
 # train
 
-CUDA_VISIBLE_DEVICES=2 python train.py --dataset utzappos --dataset_path /data/sjh/dataset/ut-zappos --word_embedding_root /data/sjh/dataset/ --cfg configs/CoT.yml --batch_size 128 --test_batch_size 64 --splitname compositional-split-natural
+CUDA_VISIBLE_DEVICES=2 python train.py --cfg configs/CoT.yml
 ```
 
 ### CANet

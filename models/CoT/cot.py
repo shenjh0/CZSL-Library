@@ -406,7 +406,6 @@ class COT(nn.Module):
             1, 1, 14, 14
         )                
 
-
         relation1 = torch.cat((vis_obj, self.img_avg_pool(img_feat_l9).squeeze()), dim=1) 
         c_scale = F.sigmoid(self.mlp_3(relation1)).unsqueeze(2).unsqueeze(3).expand_as(img_feat_l9)
         relation1_inter = img_feat_l9 * c_scale

@@ -8,7 +8,7 @@ from bisect import bisect_right
 
 from utils import AverageMeter
 from engines.evaluator_ge import Evaluator
-import tqdm
+from tqdm import tqdm
 
 def train_cot(model, train_dataset, val_dataset, test_dataset, cfg, logger):
     def freeze(m):
@@ -51,7 +51,6 @@ def train_cot(model, train_dataset, val_dataset, test_dataset, cfg, logger):
         pin_memory=True, drop_last=False)
 
     for epoch in range(cfg.start_epoch, cfg.max_epoch):
-
         if epoch == cfg.aug_epoch:
             print('Start Minority Attribute Augmentation')
             freeze(model.feat_extractor)
@@ -134,9 +133,9 @@ def train_cot(model, train_dataset, val_dataset, test_dataset, cfg, logger):
         def decay_learning_rate_milestones(group_lrs, optimizer, epoch, cfg):
             """Decays learning rate following milestones in cfg.
             """
-            milestones = cfg.TRAIN.lr_decay_milestones
+            milestones = cfg.lr_decay_milestones
             it = bisect_right(milestones, epoch)
-            gamma = cfg.TRAIN.decay_factor ** it
+            gamma = cfg.decay_factor ** it
             
             gammas = [gamma] * len(group_lrs)
             assert len(optimizer.param_groups) == len(group_lrs)

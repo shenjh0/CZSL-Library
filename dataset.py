@@ -26,7 +26,6 @@ def check_mitstates_img(datatype, image):
     return image
 
 
-
 def transform_image(split="train", imagenet=False):
     if imagenet:
         # from czsl repo.
@@ -435,11 +434,9 @@ class COTDataset(Dataset):
         '''
         new_attr, new_obj = self.sample_pairs[np.random.choice(
             len(self.sample_pairs))]
-
         while new_attr == attr and new_obj == obj:
             new_attr, new_obj = self.sample_pairs[np.random.choice(
             len(self.sample_pairs))]
-
         return (self.attr2idx[new_attr], self.obj2idx[new_obj])
 
     def sample_same_object2(self, attr, obj):
@@ -1221,7 +1218,6 @@ class PROLTDataset(CompositionDataset):
         Call for length
         '''
         return len(self.sample_indices)
-
 
 class CompCosDataset(CANetDataset):
     def get_dict_data(self, data, pairs):

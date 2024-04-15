@@ -30,6 +30,7 @@ training:
   update_image_features: false
   lambda_rep: 1
   lambda_grad: 10
+  train_only: true
 
 others:
   bias: 1000.0

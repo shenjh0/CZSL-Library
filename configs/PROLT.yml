@@ -1,8 +1,8 @@
 experiment:
   name: prolt
 dataset:
-  dataset: utzappos
-  dataset_path: /data/sjh/dataset/ut-zappos
+  dataset: mit-states
+  dataset_path: /data/sjh/dataset/MITStates/release_dataset
   splitname: compositional-split-natural
 
 model_params:
@@ -88,4 +88,5 @@ others:
   threshold: null
   threshold_trials: 50
   update_feasibility_every: 1
+  return_images: false
 

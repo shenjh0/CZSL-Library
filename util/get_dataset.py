@@ -1,106 +1,31 @@
-from dataset import CompositionDataset, COTDataset, CANetDataset, SCENDataset, IVRDataset, PROLTDataset, CompCosDataset
-
+from datasets import *
 
 def build_dataset(config, split, **args):
 
     if config.model_type.upper() == "COT":
-        train_dataset = COTDataset(phase='train', split=config.splitname, cfg=config)
-        val_dataset = COTDataset(phase='val', split=config.splitname, cfg=config)
-        test_dataset = COTDataset(phase='test', split=config.splitname, cfg=config)
+        train_dataset = COTDataset(config, phase='train', split=config.splitname)
+        val_dataset = COTDataset(config, phase='val', split=config.splitname)
+        test_dataset = COTDataset(config, phase='test', split=config.splitname)
     elif config.model_type.upper() == "CANET":
-        train_dataset = CANetDataset(
-        config, config.dataset_path, 'train', split=config.splitname,
-        model =config.image_extractor, update_image_features = config.update_image_features,
-        train_only= config.train_only)
-        val_dataset = CANetDataset(
-        config, config.dataset_path, config.test_set, split=config.splitname, 
-        model =config.image_extractor, update_image_features = config.update_image_features)
-        test_dataset = CANetDataset(
-        config, config.dataset_path, config.test_set, split=config.splitname, 
-        model =config.image_extractor, update_image_features = config.update_image_features)
+        train_dataset = CANetDataset(config, 'train', config.splitname)
+        val_dataset = CANetDataset(config, config.test_set, config.splitname)
+        test_dataset = CANetDataset(config, config.test_set, config.splitname)
     elif config.model_type.upper() == "SCEN":
-        train_dataset = SCENDataset(
-                config,
-                root=config.dataset_path,
-                phase='train',
-                split=config.splitname,
-                model =config.image_extractor,
-                update_image_features = config.update_image_features,
-                train_only= config.train_only,
-                open_world=config.open_world
-            )
-        val_dataset = SCENDataset(
-            config,
-            root=config.dataset_path,
-            phase=config.test_set,
-            split=config.splitname,
-            model =config.image_extractor,
-            subset=config.subset,
-            update_image_features = config.update_image_features,
-            open_world=config.open_world
-        )
-        test_dataset = SCENDataset(
-            config,
-            root=config.dataset_path,
-            phase=config.test_set,
-            split=config.splitname,
-            model =config.image_extractor,
-            subset=config.subset,
-            update_image_features = config.update_image_features,
-            open_world=config.open_world
-        )
+        train_dataset = SCENDataset(config, 'train', config.splitname)
+        val_dataset = SCENDataset(config, config.test_set, config.splitname)
+        test_dataset = SCENDataset(config, config.test_set, config.splitname)
     elif config.model_type.upper() == "IVR":
-        train_dataset = IVRDataset(
-                config,
-                root=config.dataset_path,
-                phase='train',
-                split=config.splitname,
-                model =config.image_extractor,
-                update_image_features = config.update_image_features,
-            )
-        val_dataset = IVRDataset(
-            config,
-            root=config.dataset_path,
-            phase=config.test_set,
-            split=config.splitname,
-            model =config.image_extractor,
-            update_image_features = config.update_image_features
-        )
-        test_dataset = IVRDataset(
-            config,
-            root=config.dataset_path,
-            phase=config.test_set,
-            split=config.splitname,
-            model =config.image_extractor,
-            update_image_features = config.update_image_features
-        )
+        train_dataset = IVRDataset(config, 'train', config.splitname)
+        val_dataset = IVRDataset(config, config.test_set, config.splitname)
+        test_dataset = IVRDataset(config, config.test_set, config.splitname)
     elif config.model_type.upper() == "PROLT":
-        train_dataset = PROLTDataset(
-                config,
-                phase='train',
-                split=config.splitname,
-            )
-        val_dataset = PROLTDataset(
-            config,
-            phase=config.test_set,
-            split=config.splitname
-        )
-        test_dataset = PROLTDataset(
-            config,
-            phase=config.test_set,
-            split=config.splitname,
-        )
+        train_dataset = PROLTDataset(config, 'train', config.splitname)
+        val_dataset = PROLTDataset(config, config.test_set, config.splitname)
+        test_dataset = PROLTDataset(config, config.test_set, config.splitname)
     elif config.model_type.upper() == "COMPCOS":
-        train_dataset = CompCosDataset(
-                config, config.dataset_path, 'train', split=config.splitname,
-                model =config.image_extractor, update_image_features = config.update_image_features,
-                train_only= config.train_only)
-        val_dataset = CompCosDataset(
-                config, config.dataset_path, config.test_set, split=config.splitname, 
-                model =config.image_extractor, update_image_features = config.update_image_features)
-        test_dataset = CompCosDataset(
-                config, config.dataset_path, config.test_set, split=config.splitname, 
-                model =config.image_extractor, update_image_features = config.update_image_features)
+        train_dataset = CompCosDataset(config, 'train', config.splitname)
+        val_dataset = CompCosDataset(config, config.test_set, config.splitname)
+        test_dataset = CompCosDataset(config, config.test_set, config.splitname)
     else:
         train_dataset = CompositionDataset(config.dataset_path, phase='train', split=split)
         val_dataset = CompositionDataset(config.dataset_path, phase='val', split=split)

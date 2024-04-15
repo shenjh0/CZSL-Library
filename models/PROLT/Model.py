@@ -112,7 +112,6 @@ class CZSL(nn.Module):
         for i in range(self.label_smooth.shape[0]):
             self.label_smooth[i,i] = 1-(self.epi)
 
-
         self.C_y = down_sample_embedder(self.dset,self.args)
         self.img_decouple = img_decoupleing(self.dset,self.args)
 

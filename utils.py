@@ -5,6 +5,7 @@ import random
 import os
 import yaml
 import logging
+import types
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -22,6 +23,15 @@ def load_args(filename, args):
     for key, group in data_loaded.items():
         for key, val in group.items():
             setattr(args, key, val)
+
+def dict_to_namespace(dicts):
+    namespace = types.SimpleNamespace()
+    for key, value in dicts.items():
+        if isinstance(value, dict):
+            setattr(namespace, key, dict_to_namespace(value))
+        else:
+            setattr(namespace, key, value)
+    return namespace
 
 def set_log(file):
     logging.basicConfig(filename=file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
