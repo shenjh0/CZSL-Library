@@ -25,6 +25,7 @@ def get_parser():
     parser.add_argument("--cfg", help="cofig file path", type=str, default='configs/scen_test.yml')
 
     parser.add_argument("--clip_model", help="clip model type", type=str, default="ViT-L/14")
+    parser.add_argument("--use_seed", help="set seed or not", default=True, type=bool)
     parser.add_argument("--seed", help="seed value", default=0, type=int)
     parser.add_argument("--open_world", help="evaluate on open world setup", default= False)
     cfg = parser.parse_args()
@@ -44,12 +45,12 @@ def main():
     logger = init_log('global', logpath, logging.INFO)
     logger.info('{}\n'.format(pprint.pformat({**vars(config)})))
 
-    set_seed(config.seed)
+    if config.use_seed:
+        set_seed(config.seed)
 
-    # train_dataset, val_dataset, test_dataset = build_dataset(config, 'compositional-split-manual')
     train_dataset, val_dataset, test_dataset = build_dataset(config, config.splitname)
 
-    # TODO: pdrpt needs these
+    # TODO: pdrpt needs these, or move them to the build_model func
     if False:
         ent_attr, ent_obj = train_dataset.ent_attr, train_dataset.ent_obj
 
