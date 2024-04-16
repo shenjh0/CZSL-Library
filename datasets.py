@@ -72,6 +72,7 @@ class ImageLoader:
         img = Image.open(file).convert('RGB')
         return img
 
+
 class BaseCompositionDataset(Dataset):
     def __init__(self, config, phase, split) -> None:
         self.config = config
@@ -234,6 +235,7 @@ class BaseCompositionDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
+
 
 class COTDataset(BaseCompositionDataset):
     def __init__(self, config, phase, split, open_world=False) -> None:
@@ -446,7 +448,7 @@ class SCENDataset(CANetDataset):
             img_pos_obj = [_img for (_img, _, _obj) in self.train_data if _obj == obj]
             img_pos_att = [_img for (_img, _att, _) in self.train_data if _att == attr]
             for i in range(len(img_pos_obj)):
-                img_pos_obj[i] = self.activations[check_mitstates_img(self.config.dataset, img_pos_obj[i])]
+                img_pos_obj[i] = self.activations[self.check_mitstates_img(self.config.dataset, img_pos_obj[i])]
             if len(img_pos_obj) > 10:
                 img_pos_obj_feats = random.sample(img_pos_obj, 10)
             else:
@@ -462,7 +464,7 @@ class SCENDataset(CANetDataset):
                     img_pos_obj_feats = torch.Tensor(10, len(img_pos_obj[0]))
 
             for i in range(len(img_pos_att)):
-                img_pos_att[i] = self.activations[check_mitstates_img(self.config.dataset, img_pos_att[i])]
+                img_pos_att[i] = self.activations[self.check_mitstates_img(self.config.dataset, img_pos_att[i])]
             if len(img_pos_att) > 10:
                 img_pos_att_feats = random.sample(img_pos_att, 10)
             else:
@@ -717,95 +719,6 @@ class CompositionDataset(Dataset):
 
     def __len__(self):
         return len(self.data)
-
-
-# class PROLTDataset(SCENDataset):
-
-#     def imagenet_transform(self):
-#         mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-#         if self.phase == 'train':
-#             transform = transforms.Compose([
-#                 transforms.RandomResizedCrop(224),
-#                 transforms.RandomHorizontalFlip(),
-#                 transforms.ToTensor(),
-#                 transforms.Normalize(mean, std)
-#             ])
-#         elif self.phase == 'test' or self.phase == 'val':
-#             transform = transforms.Compose([
-#                 transforms.Resize(256),
-#                 transforms.CenterCrop(224),
-#                 transforms.ToTensor(),
-#                 transforms.Normalize(mean, std)
-#             ])
-#         return transform
-
-#     def generate_features(self, out_file, model, feat_avgpool=True):
-#         data = self.train_data + self.val_data + self.test_data
-#         transform = transform_image('test')
-#         if model == 'resnet18':
-#             model = models.resnet18(pretrained=True)
-#         elif model == 'resnet50':
-#             model = models.resnet50(pretrained=True)
-#         feat_extractor = model
-#         feat_extractor.fc = nn.Sequential()
-#         feat_extractor.eval().cuda()
-
-#         image_feats = []
-#         image_files = []
-#         for chunk in tqdm.tqdm(
-#                 self.chunks(data, 512), total=len(data) // 512):
-#             files, attrs, objs = zip(*chunk)
-#             imgs = list(map(self.loader, files))
-#             imgs = list(map(transform, imgs))
-#             imgs = torch.stack(imgs, 0).cuda()
-#             if feat_avgpool:
-#                 feats = feat_extractor(imgs)
-#             else:
-#                 feats = feat_extractor.conv1(imgs)
-#                 feats = feat_extractor.bn1(feats)
-#                 feats = feat_extractor.relu(feats)
-#                 feats = feat_extractor.maxpool(feats)
-#                 feats = feat_extractor.layer1(feats)
-#                 feats = feat_extractor.layer2(feats)
-#                 feats = feat_extractor.layer3(feats)
-#                 feats = feat_extractor.layer4(feats)
-#                 assert feats.shape[-3:] == (512, 7, 7), feats.shape
-#             image_feats.append(feats.data.cpu())
-#             image_files += files
-#         image_feats = torch.cat(image_feats, 0)
-#         print('features for %d images generated' % (len(image_files)))
-#         torch.save({'features': image_feats, 'files': image_files}, out_file)
-
-#     def __getitem__(self, index):
-#         index = self.sample_indices[index]
-#         image, attr, obj = self.data[index]
-
-#         image = self.check_mitstates_img(self.config.dataset, image)
-#         if not self.update_image_features:
-#             img = self.activations[image]
-#         else:
-#             img = self.loader(image)
-#             img = self.transform(img)
-
-#         data = [img, self.attr2idx[attr], self.obj2idx[obj], self.pair2idx[(attr, obj)]]
-#         if self.phase == 'train':
-#             all_neg_attrs = []
-#             all_neg_objs = []
-
-#             for curr in range(self.config.num_negs):
-#                 neg_attr, neg_obj = self.sample_negative(attr, obj) # negative for triplet lose
-#                 all_neg_attrs.append(neg_attr)
-#                 all_neg_objs.append(neg_obj)
-
-#             neg_attr, neg_obj = torch.LongTensor(all_neg_attrs), torch.LongTensor(all_neg_objs)
-            
-#             if len(self.train_obj_affordance[obj])>1:
-#                   inv_attr = self.sample_train_affordance(attr, obj)
-#             else:
-#                   inv_attr = (all_neg_attrs[0]) 
-#             comm_attr = self.sample_affordance(inv_attr, obj)
-#             data += [neg_attr, neg_obj, inv_attr, comm_attr]
-#         return data
     
 
 class PROLTDataset(SCENDataset):

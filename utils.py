@@ -22,6 +22,8 @@ def load_args(filename, args):
         data_loaded = yaml.safe_load(stream)
     for key, group in data_loaded.items():
         for key, val in group.items():
+            if isinstance(val, dict):
+                val = dict_to_namespace(val)
             setattr(args, key, val)
 
 def dict_to_namespace(dicts):

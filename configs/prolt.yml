@@ -1,14 +1,12 @@
-
+experiment:
+  name: prolt
 dataset:
-  dataset: utzappos
-  dataset_path: /data/sjh/dataset/ut-zappos
+  dataset: mit-states
+  dataset_path: /data/sjh/dataset/MITStates/release_dataset
   splitname: compositional-split-natural
-  word_embedding_root: /data/sjh/dataset/  # also modify the emb_type
-
-  num_negs: 1
 
 model_params:
-  model_type: SCEN
+  model_type: PROLT
 
   dropout: true
   norm: true
@@ -17,27 +15,20 @@ model_params:
   fc_emb: 768,1024
   emb_dim: 300
   emb_type: glove
+  word_embedding_root: /data/sjh/dataset/
   image_extractor: resnet18
   train_only: true
   static_inp: false
-  embed_rank: 64
-  clf_init: false
-  composition: mlp_add
-
-  gcn_type: gcn
-  gr_emb: d4096,d
-  graph: false
-  graph_init: graph
-  hard_masking: false
+  feat_dim: 512
 
 training:
-  seed: 6344
   batch_size: 128
   load:
+  device: cuda
   lr: 5.0e-05
   lrg: 0.001
   margin: 1.0
-  cosine_scale: 100
+  cosine_scale_components: 10
   max_epochs: 500
   norm_family: imagenet
   save_every: 10000
@@ -45,30 +36,40 @@ training:
   test_set: test
   topk: 1
   wd: 5.0e-05
-  num_workers: 4
+  num_workers: 8
   update_image_features: false
   freeze_features: false
   epoch_max_margin: 100
-  img_size: 512
-  lambda_CE: 1.0
-  lambda_aux: 1.0
-  lambda_con: 51.0
-  lambda_1: 0.2
-
-  bias: 1000.0
-  clean_only: false
-  device: cuda
-
-eval:
-  cpu_eval: false
-  cv_dir: logs/
-
-  eval_type: dist
-  eval_val_every: 1
-
+  C_y: MLP
+  residual: False
+  attr_objs_fc_emb: 2048,2048
+  IC: True
+  eta: 1.1
+  use_precomputed_features: False
+  use_composed_pair_loss: False
+  is_open: False
 
 others:
+  bias: 1000.0
+  clean_only: false
+  clf_init: false
+  composition: mlp_add
+  cosine_scale_pairs: 20
+  cpu_eval: false
+  cv_dir: logs/
+  emb_dim: 300
+  emb_init: glove
+  embed_rank: 64
+  eval_type: dist
+  eval_val_every: 1
+  gcn_type: gcn
+  gr_emb: d4096,d
+  graph: false
+  graph_init: null
+  hard_masking: false
+  if_ds: true
   lambda_ant: 0.0
+  lambda_aux: 0.0
   lambda_axiom: 0
   lambda_cls_attr: 0
   lambda_cls_obj: 0
@@ -76,13 +77,15 @@ others:
   lambda_inv: 0.0
   lambda_sym: 0
   lambda_trip: 0
-  logpath: null
-  name: compcos/utzappos
+  latent_dim: 1024
   nmods: 24
   num_negs: 1
   open_world: false
   pair_dropout: 0.0
+  smooth_factor: 0.2
   subset: false
   threshold: null
   threshold_trials: 50
   update_feasibility_every: 1
+  return_images: false
+
