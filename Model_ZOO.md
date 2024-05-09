@@ -37,6 +37,12 @@ Modify these codes at `models/word_embedding.py`. \
 Now only support glove.
 
 
+## Train
+
+You need modify the `dataset`, `dataset_path` and `word_embedding_root` settings in config file first.
+The `dataset` should be: utzappos and mit-states, other datasets should follow the dir of utzappos/mit-states.
+
+
 ### CoT
 Need download the [Glove](https://drive.google.com/drive/folders/1BE2X70eNMIMkGYwhe01HA4c5jixUQdWd?usp=sharing) to the parent directory of the dataset root. 
 See more by following the official repo [CoT](https://github.com/HanjaeKim98/CoT)
@@ -44,28 +50,21 @@ See more by following the official repo [CoT](https://github.com/HanjaeKim98/CoT
 ``` sh
 # train
 
-CUDA_VISIBLE_DEVICES=2 python train.py --cfg configs/CoT.yml
+CUDA_VISIBLE_DEVICES=2 python train.py --cfg configs/cot.yml
 ```
 
 ### CANet
 ``` sh
 # train
 
-CUDA_VISIBLE_DEVICES=2 python train.py --dataset utzappos --dataset_path /data/sjh/dataset/ut-zappos --word_embedding_root /data/sjh/dataset/ --cfg configs/CANet.yml
+CUDA_VISIBLE_DEVICES=2 python train.py --cfg configs/canet.yml
 ```
 
 ### SCEN
 ``` sh
 # train
 
-CUDA_VISIBLE_DEVICES=2 python train.py --dataset utzappos --dataset_path /data/sjh/dataset/ut-zappos --word_embedding_root /data/sjh/dataset/ --cfg configs/SCEN.yml
-```
-
-### SCEN
-``` sh
-# train
-
-CUDA_VISIBLE_DEVICES=2 python train.py --dataset utzappos --dataset_path /data/sjh/dataset/ut-zappos --word_embedding_root /data/sjh/dataset/ --cfg configs/SCEN.yml
+CUDA_VISIBLE_DEVICES=2 python train.py --cfg configs/scen.yml
 ```
 
 ### IVR
@@ -75,14 +74,14 @@ IVR does not support mit-states dataset, because it goes wrong at `IVRDataset.sa
 ``` sh
 # train
 
-CUDA_VISIBLE_DEVICES=2 python train.py --dataset utzappos --dataset_path /data/sjh/dataset/ut-zappos --word_embedding_root /data/sjh/dataset/ --cfg configs/ivr.yml
+CUDA_VISIBLE_DEVICES=2 python train.py  --cfg configs/ivr.yml
 ```
 
 ### CompCos
 ``` sh
 # train
 
-CUDA_VISIBLE_DEVICES=2 python train.py --dataset utzappos --dataset_path /data/sjh/dataset/ut-zappos --word_embedding_root /data/sjh/dataset/ --cfg configs/CompCos.yml
+CUDA_VISIBLE_DEVICES=2 python train.py --cfg configs/compcos.yml
 ```
 
 
