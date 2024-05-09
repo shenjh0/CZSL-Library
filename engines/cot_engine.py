@@ -113,7 +113,7 @@ def train_cot(model, train_dataset, val_dataset, test_dataset, cfg, logger):
                 if k in dict_meters:
                     dict_meters[k].update(out[k].item())
 
-            if (idx + 1) % cfg.disp_interval == 0:
+            if ((idx + 1) % (len(trainloader) // 8) == 0):
                 logger.info(f'Epoch: {epoch} Iter: {idx+1}/{len(trainloader)}, '
                     f'Loss: {dict_meters["loss_total"].avg:.3f}, '
                     f'Acc_Obj: {acc_obj_meter.avg:.2f}, '
